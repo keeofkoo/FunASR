@@ -19,7 +19,7 @@ using paraformer::WavFormat;
 
 class GrpcEngine {
 public:
-    GrpcEngine(grpc::ServerReaderWriter<Response, Request> *stream, std::shared_ptr<FUNASR_HANDLE> asr_handler);
+    GrpcEngine(grpc::ServerReaderWriter<Response, Request> *stream, std::shared_ptr<FUNASR_HANDLE> asr_handle);
 
     void operator()();
 
@@ -36,6 +36,7 @@ private:
     std::shared_ptr<Request> request_;
     std::shared_ptr<Response> response_;
     std::shared_ptr<FUNASR_HANDLE> asr_handle_;
+    std::shared_ptr<FUNASR_DEC_HANDLE> decode_handle_;
     std::string audio_buffer_;
     std::shared_ptr<std::thread> decode_thread_ = nullptr;
     bool is_start_ = false;
@@ -57,6 +58,6 @@ public:
 
 private:
     std::map<std::string, std::string> model_path_;
-    std::shared_ptr<FUNASR_HANDLE> asr_handler_;
+    std::shared_ptr<FUNASR_HANDLE> asr_handle_;
     DISALLOW_COPY_AND_ASSIGN(GrpcService);
 };

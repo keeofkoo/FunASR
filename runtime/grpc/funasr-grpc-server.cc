@@ -29,18 +29,19 @@ void GrpcEngine::DecodeThreadFunc() {
     std::string asr_result;
     std::string asr_timestamp;
     try {
-        FUNASR_DEC_HANDLE decoder_handle = FunASRWfstDecoderInit(*asr_handle_, ASR_OFFLINE, global_beam_, lattice_beam_, am_scale_);
         while (!is_end_) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
         LOG(INFO) << "audio_buffer: " << audio_buffer_.size() << " bytes";
-        FUNASR_RESULT result = FunOfflineInferBuffer(*asr_handle_, audio_buffer_.c_str(), audio_buffer_.size(), RASR_NONE, nullptr, *hotwords_embedding_, sampling_rate_, encoding_, itn_, decoder_handle, "auto", true);
+        FUNASR_RESULT result = FunOfflineInferBuffer(*asr_handle_, audio_buffer_.c_str(), audio_buffer_.size(), RASR_NONE, nullptr, *hotwords_embedding_, sampling_rate_, encoding_, itn_, *decode_handle_, "auto", true);
         if (result != nullptr) {
             asr_result = FunASRGetResult(result, 0);
             asr_timestamp = FunASRGetStamp(result);
             FunASRFreeResult(result);
         }
-        FunASRWfstDecoderUninit(decoder_handle);
+        FunWfstDecoderUnloadHwsRes(*decode_handle_);
+        FunASRWfstDecoderUninit(*decode_handle_);
+        decode_handle_ = nullptr;
     } catch (const std::exception &e) {
         LOG(ERROR) << e.what();
     }
@@ -103,6 +104,9 @@ void GrpcEngine::OnSpeechStart() {
     }
     hotwords_embedding_ = std::make_shared<std::vector<std::vector<float>>>(CompileHotwordEmbedding(*asr_handle_, nn_hotwords));
 
+    decode_handle_ = std::make_shared<FUNASR_DEC_HANDLE>(FunASRWfstDecoderInit(*asr_handle_, ASR_OFFLINE, global_beam_, lattice_beam_, am_scale_));
+    FunWfstDecoderLoadHwsRes(*decode_handle_, fst_inc_wts_, hws_map_);
+
     is_start_ = true;
     decode_thread_ = std::make_shared<std::thread>(&GrpcEngine::DecodeThreadFunc, this);
 }
@@ -143,14 +147,14 @@ void GrpcEngine::operator()() {
 
 GrpcService::GrpcService(std::map<std::string, std::string> &model_path, int model_thread_num)
     : model_path_(model_path) {
-    asr_handler_ = std::make_shared<FUNASR_HANDLE>(FunOfflineInit(model_path_, model_thread_num));
+    asr_handle_ = std::make_shared<FUNASR_HANDLE>(FunOfflineInit(model_path_, model_thread_num));
     LOG(INFO) << "model loaded successfully";
     // TODO: warmup
 }
 
 grpc::Status GrpcService::Recognize(grpc::ServerContext *context, grpc::ServerReaderWriter<Response, Request> *stream) {
     LOG(INFO) << "Recognize: start";
-    GrpcEngine engine(stream, asr_handler_);
+    GrpcEngine engine(stream, asr_handle_);
     std::thread t(std::move(engine));
     t.join();
     return grpc::Status::OK;
