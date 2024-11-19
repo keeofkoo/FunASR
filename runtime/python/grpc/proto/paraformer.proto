@@ -30,10 +30,13 @@ message Request {
   repeated int32 chunk_size = 4;
   bool is_final = 5;
   bytes audio_data = 6;
+  map<string, int32> hotwords = 7;
+  bool itn = 8;
 }
 
 message Response {
   DecodeMode mode = 1;
   string text = 2;
   bool is_final = 3;
+  string timestamp = 4;
 }

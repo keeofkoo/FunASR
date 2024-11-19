@@ -40,24 +40,48 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 link_directories(${ONNXRUNTIME_DIR}/lib)
 link_directories(${FFMPEG_DIR}/lib)
 
+# json
+include(FetchContent)
+FetchContent_Declare(json
+  URL https://github.com/nlohmann/json/archive/refs/tags/v3.11.2.tar.gz
+)
+FetchContent_MakeAvailable(json)
+include_directories(${json_SOURCE_DIR}/include)
+
+# glog
+include_directories(${PROJECT_SOURCE_DIR}/../onnxruntime/third_party/glog/src)
+add_subdirectory(${PROJECT_SOURCE_DIR}/../onnxruntime/third_party/glog glog)
+include_directories(${glog_BINARY_DIR})
+
+# gflags
+include_directories(${PROJECT_SOURCE_DIR}/../onnxruntime/third_party/gflags)
+add_subdirectory(${PROJECT_SOURCE_DIR}/../onnxruntime/third_party/gflags gflags)
+include_directories(${gflags_BINARY_DIR}/include)
+
+# openfst
+add_subdirectory(${PROJECT_SOURCE_DIR}/../onnxruntime/third_party/openfst openfst)
+include_directories(${openfst_SOURCE_DIR}/src/include)
+
 include_directories(${PROJECT_SOURCE_DIR}/../onnxruntime/include/)
+include_directories(${PROJECT_SOURCE_DIR}/../onnxruntime/src)
 include_directories(${PROJECT_SOURCE_DIR}/../onnxruntime/third_party/yaml-cpp/include/)
 include_directories(${PROJECT_SOURCE_DIR}/../onnxruntime/third_party/kaldi-native-fbank)
+include_directories(${PROJECT_SOURCE_DIR}/../onnxruntime/third_party/jieba/include)
+include_directories(${PROJECT_SOURCE_DIR}/../onnxruntime/third_party/jieba/include/limonp/include)
+include_directories(${PROJECT_SOURCE_DIR}/../onnxruntime/third_party)
+include_directories(${PROJECT_SOURCE_DIR}/../onnxruntime/third_party/kaldi)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/../onnxruntime/third_party/yaml-cpp yaml-cpp)
 add_subdirectory(${PROJECT_SOURCE_DIR}/../onnxruntime/third_party/kaldi-native-fbank/kaldi-native-fbank/csrc csrc)
 add_subdirectory(${PROJECT_SOURCE_DIR}/../onnxruntime/src src)
-
-include_directories(${PROJECT_SOURCE_DIR}/../onnxruntime/third_party/glog)
-add_subdirectory(${PROJECT_SOURCE_DIR}/../onnxruntime/third_party/glog glog)
+add_subdirectory(${PROJECT_SOURCE_DIR}/../onnxruntime/third_party/kaldi kaldi)
 
 # rg_grpc_proto
 add_library(rg_grpc_proto ${rg_grpc_srcs} ${rg_grpc_hdrs} ${rg_proto_srcs} ${rg_proto_hdrs})
-
 target_link_libraries(rg_grpc_proto ${_REFLECTION} ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF})
 
-add_executable(paraformer-server paraformer-server.cc)
-target_link_libraries(paraformer-server
+add_executable(funasr-grpc-server funasr-grpc-server.cc)
+target_link_libraries(funasr-grpc-server
   rg_grpc_proto
   funasr
   ${EXTRA_LIBS}
