@@ -29,9 +29,6 @@ void GrpcEngine::DecodeThreadFunc() {
     std::string asr_result;
     std::string asr_timestamp;
     try {
-        while (!is_end_) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
         LOG(INFO) << "audio_buffer: " << audio_buffer_.size() << " bytes";
         FUNASR_RESULT result = FunOfflineInferBuffer(*asr_handle_, audio_buffer_.c_str(), audio_buffer_.size(), RASR_NONE, nullptr, *hotwords_embedding_, sampling_rate_, encoding_, itn_, *decode_handle_, "auto", true);
         if (result != nullptr) {
@@ -108,21 +105,16 @@ void GrpcEngine::OnSpeechStart() {
     FunWfstDecoderLoadHwsRes(*decode_handle_, fst_inc_wts_, hws_map_);
 
     is_start_ = true;
-    decode_thread_ = std::make_shared<std::thread>(&GrpcEngine::DecodeThreadFunc, this);
 }
 
 void GrpcEngine::OnSpeechData() {
-    p_mutex_->lock();
     audio_buffer_ += request_->audio_data();
-    p_mutex_->unlock();
 }
 
 void GrpcEngine::OnSpeechEnd() {
-    is_end_ = true;
     LOG(INFO) << "read all pcm data, wait for decoding thread";
-    if (decode_thread_ != nullptr) {
-        decode_thread_->join();
-    }
+    auto decode_thread = std::thread(&GrpcEngine::DecodeThreadFunc, this);
+    decode_thread.join();
 }
 
 void GrpcEngine::operator()() {

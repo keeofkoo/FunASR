@@ -38,17 +38,13 @@ private:
     std::shared_ptr<FUNASR_HANDLE> asr_handle_;
     std::shared_ptr<FUNASR_DEC_HANDLE> decode_handle_;
     std::string audio_buffer_;
-    std::shared_ptr<std::thread> decode_thread_ = nullptr;
     bool is_start_ = false;
-    bool is_end_ = false;
 
     int sampling_rate_ = 16000;
     std::string encoding_;
     ASR_TYPE mode_ = ASR_OFFLINE;
     bool itn_ = false;
     std::shared_ptr<std::vector<std::vector<float>>> hotwords_embedding_ = nullptr;
-
-    std::unique_ptr<std::mutex> p_mutex_ = std::make_unique<std::mutex>();// mutex is not moveable
 };
 
 class GrpcService final : public ASR::Service {
